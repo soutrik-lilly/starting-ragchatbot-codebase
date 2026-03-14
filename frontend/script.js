@@ -28,6 +28,7 @@ function setupEventListeners() {
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
+    document.getElementById('newChatButton').addEventListener('click', createNewSession);
     
     
     // Suggested questions
@@ -122,10 +123,24 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        const chipsHtml = sources.map(source => {
+            if (source.url) {
+                return `<a class="source-chip source-chip--link" href="${source.url}" target="_blank" rel="noopener noreferrer">
+                            <span class="source-chip__icon">&#128279;</span>${escapeHtml(source.label)}
+                        </a>`;
+            } else {
+                return `<span class="source-chip">
+                            <span class="source-chip__icon">&#128196;</span>${escapeHtml(source.label)}
+                        </span>`;
+            }
+        }).join('');
+
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">
+                    <div class="source-chips">${chipsHtml}</div>
+                </div>
             </details>
         `;
     }
@@ -147,6 +162,13 @@ function escapeHtml(text) {
 // Removed removeMessage function - no longer needed since we handle loading differently
 
 async function createNewSession() {
+    if (currentSessionId) {
+        try {
+            await fetch(`${API_URL}/sessions/${currentSessionId}`, { method: 'DELETE' });
+        } catch (_) {
+            // Non-critical: proceed with frontend reset even if backend call fails
+        }
+    }
     currentSessionId = null;
     chatMessages.innerHTML = '';
     addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
